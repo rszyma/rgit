@@ -36,3 +36,11 @@ pub fn md(md: &str) -> Result<String, askama::Error> {
         &comrak::ComrakOptions::default(),
     ))
 }
+
+pub fn limit80(s: &str) -> Result<String, askama::Error> {
+    Ok(if s.len() > 80 {
+        format!("{}{}", &s[..77], "...")
+    } else {
+        s.to_owned()
+    })
+}
