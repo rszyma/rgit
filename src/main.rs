@@ -79,6 +79,9 @@ pub struct Args {
     /// Configures the request timeout.
     #[clap(long, default_value_t = Duration::from_secs(10).into())]
     request_timeout: humantime::Duration,
+    /// Enables trace logging.
+    #[clap(long)]
+    trace: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -110,6 +113,7 @@ impl FromStr for RefreshInterval {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let args: Args = Args::parse();
@@ -124,9 +128,12 @@ async fn main() -> Result<(), anyhow::Error> {
     #[cfg(debug_assertions)]
     let logger_layer = logger_layer.pretty();
 
-    let env_filter = EnvFilter::from_default_env()
-        .add_directive("tokio=trace".parse()?)
-        .add_directive("runtime=trace".parse()?);
+    let mut env_filter = EnvFilter::from_default_env();
+    if args.trace {
+        env_filter = env_filter.add_directive("tokio=trace".parse()?);
+        env_filter = env_filter.add_directive("runtime=trace".parse()?);
+    }
+    let env_filter = env_filter;
 
     tracing_subscriber::registry()
         .with(env_filter)
