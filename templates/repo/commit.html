@@ -24,7 +24,7 @@
     </tr>
     <tr>
         <th>commit</th>
-        <td colspan="2"><pre><a href="/{{ repo.display() }}/commit?id={{ commit.oid() }}{% call link::maybe_branch_suffix(branch) %}" class="no-style">{{ commit.oid() }}</a> <a href="/{{ repo.display() }}/patch?id={{ commit.oid() }}">[patch]</a></pre></td>
+        <td colspan="2"><pre><a href="/{{ repo.display() }}/commit/?id={{ commit.oid() }}{% call link::maybe_branch_suffix(branch) %}" class="no-style">{{ commit.oid() }}</a> <a href="/{{ repo.display() }}/patch?id={{ commit.oid() }}">[patch]</a></pre></td>
     </tr>
     <tr>
         <th>tree</th>
@@ -33,7 +33,7 @@
     {%- for parent in commit.parents() %}
     <tr>
         <th>parent</th>
-        <td colspan="2"><pre><a href="/{{ repo.display() }}/commit?id={{ parent }}{% call link::maybe_branch_suffix(branch) %}" class="no-style">{{ parent }}</a></pre></td>
+        <td colspan="2"><pre><a href="/{{ repo.display() }}/commit/?id={{ parent }}{% call link::maybe_branch_suffix(branch) %}" class="no-style">{{ parent }}</a></pre></td>
     </tr>
     {%- endfor %}
     <!-- <tr>

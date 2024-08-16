@@ -16,6 +16,7 @@ use git2::{
     DiffFormat, DiffLineType, DiffOptions, DiffStatsFormat, Email, EmailCreateOptions, ObjectType,
     Oid, Signature, TreeWalkResult,
 };
+use itertools::Itertools;
 use moka::future::Cache;
 use parking_lot::Mutex;
 use syntect::{
@@ -315,7 +316,7 @@ impl OpenRepository {
                 fetch_diff_and_stats(&repo, &commit, &self.git.syntax_set)?;
 
             let mut commit = Commit::try_from(commit)?;
-            commit.diff_stats = diff_stats;
+            commit.diff_stats = format_diff_stats(&diff_stats, &commit);
             commit.diff = diff_output;
             commit.diff_plain = diff_plain;
             Ok(commit)
@@ -423,7 +424,7 @@ impl OpenRepository {
                         fetch_diff_and_stats(&repo, &commit, &self.git.syntax_set)?;
 
                     let mut commit = Commit::try_from(commit)?;
-                    commit.diff_stats = diff_stats;
+                    commit.diff_stats = format_diff_stats(&diff_stats, &commit);
                     commit.diff = diff_output;
                     commit.diff_plain = diff_plain;
 
@@ -878,4 +879,21 @@ fn format_diff(diff: &git2::Diff<'_>, syntax_set: &SyntaxSet) -> Result<String> 
     .context("Failed to prepare diff")?;
 
     Ok(diff_output)
+}
+
+fn format_diff_stats(diff_stats: &str, commit: &Commit) -> String {
+    let commit_tree_id = commit.tree();
+    diff_stats
+        .split('\n')
+        .map(|line| {
+            let Some((left, right)) = line.split_once('|') else {
+                return line.to_owned();
+            };
+            let filepath = left.trim_ascii();
+            let htmled_filepath =
+                format!(r#"<a href="../tree/{filepath}?id={commit_tree_id}">{filepath}</a>"#);
+            let spaces_padding = " ".repeat(left.len() - filepath.len());
+            format!("{htmled_filepath}{spaces_padding}|{right}")
+        })
+        .join("\n")
 }
