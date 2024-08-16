@@ -20,3 +20,31 @@ $text3: #000000; // abb2bf
 
 $diff-remove-bg: rgba(229, 83, 75, 0.20);
 $diff-add-bg: rgba(70, 149, 74, 0.15); // #485e30
+
+span.age-mins {
+    color: #7f7;
+    font-weight: bold;
+}
+
+span.age-hours {
+    color: #7f7;
+}
+
+span.age-days {
+    color: #9d9;
+}
+
+span.age-weeks {
+    color: #bbb;
+}
+
+span.age-months {
+    color: #888;
+}
+
+span.age-years {
+    color: #666;
+}
+
+// span.insertions { color: #7f7; }
+// span.deletions { color: #e33; }

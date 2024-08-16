@@ -23,7 +23,7 @@
         </td>
         <td>
             <time datetime="{{ commit.get().author.time|format_time }}" title="{{ commit.get().author.time|format_time }}">
-                {{- commit.get().author.time|timeago -}}
+                {{- commit.get().author.time|timeago|safe -}}
             </time>
         </td>
     </tr>
@@ -55,7 +55,7 @@
         <td>
             {% if let Some(tagger) = tag.get().tagger -%}
             <time datetime="{{ tagger.time|format_time }}" title="{{ tagger.time|format_time }}">
-                {{- tagger.time|timeago -}}
+                {{- tagger.time|timeago|safe -}}
             </time>
             {%- endif %}
         </td>
@@ -79,7 +79,7 @@
     <tr>
         <td>
             <time datetime="{{ commit.committer.time|format_time }}" title="{{ commit.committer.time|format_time }}">
-                {{- commit.committer.time.clone()|timeago -}}
+                {{- commit.committer.time.clone()|timeago|safe -}}
             </time>
         </td>
         <td><a href="/{{ repo.display() }}/commit/?id={{ commit.hash|hex }}" 

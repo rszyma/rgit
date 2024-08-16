@@ -3,7 +3,7 @@
 
 use std::borrow::Borrow;
 
-use time::format_description::well_known::Rfc3339;
+use time::{format_description::well_known::Rfc3339, Duration};
 
 pub fn format_time(s: impl Borrow<time::OffsetDateTime>) -> Result<String, askama::Error> {
     (*s.borrow())
@@ -13,8 +13,24 @@ pub fn format_time(s: impl Borrow<time::OffsetDateTime>) -> Result<String, askam
 }
 
 pub fn timeago(s: impl Borrow<time::OffsetDateTime>) -> Result<String, askama::Error> {
-    Ok(timeago::Formatter::new()
-        .convert((time::OffsetDateTime::now_utc() - *s.borrow()).unsigned_abs()))
+    let elapsed: Duration = time::OffsetDateTime::now_utc() - *s.borrow();
+    let selected_class = if elapsed < Duration::HOUR {
+        "age-mins"
+    } else if elapsed < 2 * Duration::DAY {
+        "age-hours"
+    } else if elapsed < 7 * Duration::DAY {
+        "age-days"
+    } else if elapsed < 30 * Duration::DAY {
+        "age-weeks"
+    } else if elapsed < 365 * Duration::DAY {
+        "age-months"
+    } else {
+        "age-years"
+    };
+    let formatted_time = timeago::Formatter::new().convert(elapsed.unsigned_abs());
+    Ok(format!(
+        r#"<span class="{selected_class}">{formatted_time}</span>"#
+    ))
 }
 
 pub fn file_perms(s: &i32) -> Result<String, askama::Error> {
