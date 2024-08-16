@@ -12,7 +12,11 @@
     {% for (name, commit) in branches -%}
     <tr>
         <td><a href="/{{ repo.display() }}/log/?h={{ name }}">{{ name }}</a></td>
-        <td><a href="/{{ repo.display() }}/commit/?id={{ commit.get().hash|hex }}">{{ commit.get().summary }}</a></td>
+        <td><a href="/{{ repo.display() }}/commit/?id={{ commit.get().hash|hex }}" 
+            {% if commit.get().summary.len() > 80 -%}
+              title="{{ commit.get().summary }}"
+            {%- endif %}
+            >{{ commit.get().summary|limit80 }}</a></td>
         <td>
             <!-- <img src="https://www.gravatar.com/avatar/{{ commit.get().author.email|md5 }}?s=13&d=retro" width="13" height="13"> -->
             {{ commit.get().author.name }}
@@ -78,7 +82,11 @@
                 {{- commit.committer.time.clone()|timeago -}}
             </time>
         </td>
-        <td><a href="/{{ repo.display() }}/commit/?id={{ commit.hash|hex }}">{{ commit.summary|limit80 }}</a></td>
+        <td><a href="/{{ repo.display() }}/commit/?id={{ commit.hash|hex }}" 
+            {% if commit.summary.len() > 80 -%}
+              title="{{ commit.summary }}"
+            {%- endif %}
+            >{{ commit.summary|limit80 }}</a></td>
         <td>
             <!-- <img src="https://www.gravatar.com/avatar/{{ commit.author.email|md5 }}?s=13&d=retro" width="13" height="13"> -->
             {{ commit.author.name }}
