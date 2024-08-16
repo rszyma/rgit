@@ -4,15 +4,14 @@
 @import 'code';
 @import 'colours';
 
-@media (prefers-color-scheme: dark) {
-  html {
-    background: #000;
-    color: $darkModeTextColour;
-  }
+html {
+  background: $bg;
+  color: $text;
+}
 
-  h2, h3 {
-    color: darken($darkModeHighlightColour, 20%);
-  }
+h2,
+h3 {
+  color: $primary;
 }
 
 body {
@@ -22,38 +21,34 @@ body {
 }
 
 header {
-  border-bottom: solid 1px #ccc;
+  border-bottom: solid 1px $bgAccent;
+
+  // #wrapper {
+  //   display: flex;
+  //   justify-content: center;
+  // }
 }
 
 nav {
   margin-top: 2rem;
-  border-bottom: solid 3px #ccc;
+  border-bottom: solid 3px $bgAccent;
   display: flex;
+  // justify-content: center;
+
 
   .grow {
     flex-grow: 1;
   }
 
-  @media (prefers-color-scheme: dark) {
-    border-bottom-color: $darkModeHighlightColour;
-  }
-
   a {
     padding: 2px 0.75em;
-    color: #777;
+    color: $nav-link;
     font-size: 110%;
 
-    @media (prefers-color-scheme: dark) {
-      color: $darkModeHighlightColour;
-    }
-
     &.active {
-      color: #000;
-      background-color: #ccc;
-
-      @media (prefers-color-scheme: dark) {
-        background: $darkModeHighlightColour;
-      }
+      color: $bg;
+      background-color: $nav-link-active;
+      // border-radius: .3rem;
     }
   }
 }
@@ -61,41 +56,28 @@ nav {
 main {
   padding: 2rem;
   margin: 0;
-  border-bottom: solid 3px #ccc;
-
-  @media (prefers-color-scheme: dark) {
-    border-bottom-color: $darkModeHighlightColour;
-  }
+  border-bottom: solid 3px $bgAccent;
 }
 
 footer {
   margin-top: 0.5em;
   text-align: center;
   font-size: 80%;
-  color: #ccc;
-
-  @media (prefers-color-scheme: dark) {
-    color: $darkModeTextColour;
-  }
+  color: $text;
 }
 
 a {
   text-decoration: none;
-  color: blue;
-
-  @media (prefers-color-scheme: dark) {
-    color: darken($darkModeHighlightColour, 10%);
-  }
+  // color: $dir-link;
+  color: $always-active-link;
+  // color: darken($darkModeHighlightColour, 10%);
 
   &.no-style {
     color: inherit;
-
-    @media (prefers-color-scheme: dark) {
-      color: darken($darkModeHighlightColour, 10%);
-    }
   }
 
   &:hover {
     text-decoration: underline;
+    color: #3af;
   }
 }

@@ -142,7 +142,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let bat_assets = HighlightingAssets::from_binary();
     let syntax_set = bat_assets.get_syntax_set().unwrap().clone();
 
-    let theme = bat_assets.get_theme("GitHub");
+    let theme = bat_assets.get_theme("Dracula");
     let css = syntect::html::css_for_theme_with_class_style(theme, ClassStyle::Spaced).unwrap();
     let css = Box::leak(
         format!(r#"@media (prefers-color-scheme: light){{{css}}}"#)
@@ -151,7 +151,7 @@ async fn main() -> Result<(), anyhow::Error> {
     );
     HIGHLIGHT_CSS_HASH.set(build_asset_hash(css)).unwrap();
 
-    let dark_theme = bat_assets.get_theme("TwoDark");
+    let dark_theme = bat_assets.get_theme("Dracula");
     let dark_css =
         syntect::html::css_for_theme_with_class_style(dark_theme, ClassStyle::Spaced).unwrap();
     let dark_css = Box::leak(

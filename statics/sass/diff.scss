@@ -1,12 +1,14 @@
+@import 'colours';
+
 pre.diff {
-  @media (prefers-color-scheme: dark) {
-    color: #abb2bf;
-  }
+  color: $text !important;
 }
 
-.diff-add-line::before, .diff-remove-line::before, .diff-context::before {
+.diff-add-line::before,
+.diff-remove-line::before,
+.diff-context::before {
   display: inline-block;
-  color: #888;
+  color: $text2;
   -webkit-user-select: none;
 }
 
@@ -14,17 +16,13 @@ pre.diff {
   font-weight: bold;
 }
 
-.diff-file-header > span > span {
+.diff-file-header>span>span {
   font-weight: normal;
 }
 
 .diff-add-line {
-  background: #e6ffec;
+  background: $diff-add-bg;
   display: block;
-
-  @media (prefers-color-scheme: dark) {
-    background: rgba(70, 149, 74, 0.15);
-  }
 
   &::before {
     content: '+ ';
@@ -32,12 +30,8 @@ pre.diff {
 }
 
 .diff-remove-line {
-  background: #ffebe9;
+  background: $diff-remove-bg;
   display: block;
-
-  @media (prefers-color-scheme: dark) {
-    background: rgba(229, 83, 75, 0.15);
-  }
 
   &::before {
     content: '- ';

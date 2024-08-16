@@ -17,10 +17,7 @@ pre {
 
   code {
     counter-increment: line;
-
-    @media (prefers-color-scheme: dark) {
-      color: #abb2bf;
-    }
+    color: $text;
 
     &::before {
       content: counter(line);
@@ -28,7 +25,7 @@ pre {
       width: 2em;
       padding: 0 1em 0.3em 0;
       margin-right: .5em;
-      color: $asideColour;
+      color: $primary;
       -webkit-user-select: none;
     }
   }
