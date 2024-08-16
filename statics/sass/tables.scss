@@ -82,6 +82,11 @@ table.repositories {
 }
 
 table.commit-info {
+  font-size: 90%;
+
+  a {
+    color: $normal-text-link-hover;
+  }
 
   td,
   th {

@@ -36,10 +36,10 @@
         <td colspan="2"><pre><a href="/{{ repo.display() }}/commit?id={{ parent }}{% call link::maybe_branch_suffix(branch) %}" class="no-style">{{ parent }}</a></pre></td>
     </tr>
     {%- endfor %}
-    <tr>
+    <!-- <tr>
         <th>download</th>
         <td colspan="2"><pre><a href="/{{ repo.display() }}/snapshot?{% if let Some(id) = id %}id={{ id }}{% else %}h={{ dl_branch }}{% endif %}">{{ id.as_deref().unwrap_or(dl_branch.as_ref()) }}.tar.gz</a></pre></td>
-    </tr>
+    </tr> -->
     </tbody>
 </table>
 </div>
