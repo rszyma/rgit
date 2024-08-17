@@ -889,7 +889,7 @@ fn format_diff_stats(diff_stats: &str, commit: &Commit) -> String {
             let Some((left, right)) = line.split_once('|') else {
                 return line.to_owned();
             };
-            let filepath = left.trim_ascii();
+            let filepath = left.trim();
             let htmled_filepath =
                 format!(r#"<a href="../tree/{filepath}?id={commit_tree_id}">{filepath}</a>"#);
             let spaces_padding = " ".repeat(left.len() - filepath.len());

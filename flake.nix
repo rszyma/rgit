@@ -47,7 +47,7 @@
                 type = types.path;
               };
               repositoryStorePath = mkOption {
-                default = "/git";
+                example = "/path/to/git/repos";
                 description = "Path to repositories";
                 type = types.path;
               };
@@ -69,12 +69,12 @@
                 description = "RGit service user";
                 group = "rgit";
                 isSystemUser = true;
-                home = "/git";
               };
 
               systemd.services.rgit = {
                 enable = true;
                 wantedBy = [ "multi-user.target" ];
+                requires = [ "network-online.target" ];
                 after = [ "network-online.target" ];
                 path = [ pkgs.git ];
                 serviceConfig = {
