@@ -21,13 +21,13 @@ use crate::database::schema::{
     tag::{Tag, TagTree},
 };
 
-pub fn run(scan_path: &Path, db: &Arc<rocksdb::DB>) {
+pub fn run(scan_path: &Path, scan_exclude: Option<&regex::Regex>, db: &Arc<rocksdb::DB>) {
     let span = info_span!("index_update");
     let _entered = span.enter();
 
     info!("Starting index update");
 
-    update_repository_metadata(scan_path, db);
+    update_repository_metadata(scan_path, scan_exclude, db);
     update_repository_reflog(scan_path, db.clone());
     update_repository_tags(scan_path, db.clone());
 
@@ -41,10 +41,33 @@ pub fn run(scan_path: &Path, db: &Arc<rocksdb::DB>) {
 }
 
 #[instrument(skip(db))]
-fn update_repository_metadata(scan_path: &Path, db: &rocksdb::DB) {
+fn update_repository_metadata(
+    scan_path: &Path,
+    scan_exclude: Option<&regex::Regex>,
+    db: &rocksdb::DB,
+) {
     let mut discovered = Vec::new();
     let max_depth = 2;
-    discover_repositories(scan_path, &mut discovered, max_depth);
+    discover_repositories(scan_path, &mut discovered, max_depth, scan_exclude);
+
+    let previously_cached_repos = Repository::fetch_all(db)
+        .expect("db should be fetchable")
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    let discovered_repo_names = discovered
+        .iter()
+        .map(|repo_path| repo_path.file_name().unwrap().to_string_lossy().to_string())
+        .collect::<HashSet<_>>();
+
+    for (prev_repo_rel_path, prev_repo) in previously_cached_repos {
+        if !discovered_repo_names.contains(&prev_repo_rel_path) {
+            warn!("deleting repo from cache, because it's now excluded: {prev_repo_rel_path}");
+            if let Err(err) = prev_repo.get().delete(db, &prev_repo_rel_path) {
+                error!(%err, "Failed delete repo from index {}, please consider nuking database", &prev_repo_rel_path);
+            };
+        }
+    }
 
     for repository in discovered {
         let Some(relative) = get_relative_path(scan_path, &repository) else {
@@ -383,10 +406,23 @@ fn get_relative_path<'a>(relative_to: &Path, full_path: &'a Path) -> Option<&'a 
     full_path.strip_prefix(relative_to).ok()
 }
 
-fn discover_repositories(current: &Path, discovered_repos: &mut Vec<PathBuf>, max_depth: usize) {
+#[test]
+fn feature() {
+    let r = regex::Regex::new("gitolite").unwrap();
+    let dirname = "gitolite.git";
+    println!("{:?}", r.find(dirname));
+}
+
+fn discover_repositories(
+    current: &Path,
+    discovered_repos: &mut Vec<PathBuf>,
+    max_depth: usize,
+    scan_exclude: Option<&regex::Regex>,
+) {
     if max_depth == 0 {
         return;
     }
+
     let current = match std::fs::read_dir(current) {
         Ok(v) => v,
         Err(error) => {
@@ -401,12 +437,20 @@ fn discover_repositories(current: &Path, discovered_repos: &mut Vec<PathBuf>, ma
         .filter(|path| path.is_dir());
 
     for dir in dirs {
+        let dirname = dir.file_name().unwrap().to_string_lossy();
+        if let Some(scan_exclude) = scan_exclude {
+            if scan_exclude.find(&dirname).is_some() {
+                info!("Excluding directory {}", dir.display());
+                continue;
+            }
+        }
+
         if dir.join("HEAD").is_file() {
             // we've hit what looks like a bare git repo, lets take it
             discovered_repos.push(dir);
         } else {
             // probably not a bare git repo, lets recurse deeper
-            discover_repositories(&dir, discovered_repos, max_depth - 1);
+            discover_repositories(&dir, discovered_repos, max_depth - 1, scan_exclude);
         }
     }
 }

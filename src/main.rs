@@ -73,6 +73,9 @@ pub struct Args {
     bind_address: SocketAddr,
     /// The path in which your bare Git repositories reside (will be scanned recursively)
     scan_path: PathBuf,
+    /// Exclude the directories with names that match this regex.
+    #[clap(long, value_parser)]
+    scan_exclude: Option<regex::Regex>,
     /// Configures the metadata refresh interval (eg. "never" or "60s")
     #[clap(long, default_value_t = RefreshInterval::Duration(Duration::from_secs(300)))]
     refresh_interval: RefreshInterval,
@@ -143,8 +146,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let db = open_db(&args)?;
 
-    let indexer_wakeup_task =
-        run_indexer(db.clone(), args.scan_path.clone(), args.refresh_interval);
+    let indexer_wakeup_task = run_indexer(
+        db.clone(),
+        args.scan_path.clone(),
+        args.scan_exclude.clone(),
+        args.refresh_interval,
+    );
 
     let bat_assets = HighlightingAssets::from_binary();
     let syntax_set = bat_assets.get_syntax_set().unwrap().clone();
@@ -292,13 +299,14 @@ fn open_db(args: &Args) -> Result<Arc<rocksdb::DB>, anyhow::Error> {
 async fn run_indexer(
     db: Arc<rocksdb::DB>,
     scan_path: PathBuf,
+    scan_exclude: Option<regex::Regex>,
     refresh_interval: RefreshInterval,
 ) -> Result<(), tokio::task::JoinError> {
     let (indexer_wakeup_send, mut indexer_wakeup_recv) = mpsc::channel(10);
 
     std::thread::spawn(move || loop {
         info!("Running periodic index");
-        crate::database::indexer::run(&scan_path, &db);
+        crate::database::indexer::run(&scan_path, scan_exclude.as_ref(), &db);
         info!("Finished periodic index");
 
         if indexer_wakeup_recv.blocking_recv().is_none() {

@@ -51,6 +51,12 @@
                 description = "Path to repositories";
                 type = types.path;
               };
+              scanExclude = mkOption {
+                default = null;
+                example = "gitolite-admin|mysecrets";
+                description = "Exclude the Git repositories that this regex finds.";
+                type = types.nullOr types.str;
+              };
               requestTimeout = mkOption {
                 default = "10s";
                 description = "Timeout for incoming HTTP requests";
@@ -82,11 +88,12 @@
                   Type = "exec";
                   ExecStart = builtins.concatStringsSep " " [
                     "${self.defaultPackage."${system}"}/bin/rgit"
-                    "--db-store ${cfg.dbStorePath}"
-                    "--request-timeout ${cfg.requestTimeout}"
-                    "--refresh-interval ${cfg.refreshInterval}"
-                    "${cfg.bindAddress}"
-                    "${cfg.repositoryStorePath}"
+                    "--db-store '${cfg.dbStorePath}'"
+                    (if cfg.scanExclude != null then "--scan-exclude '${cfg.scanExclude}'" else "")
+                    "--request-timeout '${cfg.requestTimeout}'"
+                    "--refresh-interval '${cfg.refreshInterval}'"
+                    "'${cfg.bindAddress}'"
+                    "'${cfg.repositoryStorePath}'"
                   ];
                   Restart = "on-failure";
 
