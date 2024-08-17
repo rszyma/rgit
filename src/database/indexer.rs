@@ -397,7 +397,7 @@ fn discover_repositories(current: &Path, discovered_repos: &mut Vec<PathBuf>) {
         .filter(|path| path.is_dir());
 
     for dir in dirs {
-        if dir.join("packed-refs").is_file() {
+        if dir.join("HEAD").is_file() {
             // we've hit what looks like a bare git repo, lets take it
             discovered_repos.push(dir);
         } else {
