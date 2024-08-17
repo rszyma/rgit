@@ -67,6 +67,10 @@ table.repositories {
         background: none !important;
         height: 1rem;
       }
+
+      &:hover {
+        background: #333;
+      }
     }
 
     pre {
