@@ -233,7 +233,7 @@ impl OpenRepository {
     pub async fn readme(
         self: Arc<Self>,
     ) -> Result<Option<(ReadmeFormat, Arc<str>)>, Arc<anyhow::Error>> {
-        const README_FILES: &[&str] = &["README.md", "README", "README.txt"];
+        const README_FILES: &[&str] = &["README.md", "README", "README.txt", "readme.md"];
 
         let git = self.git.clone();
 
