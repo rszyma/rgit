@@ -14,20 +14,27 @@ pub fn format_time(s: impl Borrow<time::OffsetDateTime>) -> Result<String, askam
 
 pub fn timeago(s: impl Borrow<time::OffsetDateTime>) -> Result<String, askama::Error> {
     let elapsed: Duration = time::OffsetDateTime::now_utc() - *s.borrow();
-    let selected_class = if elapsed < Duration::HOUR {
+    let mut formatter: &mut _ = &mut timeago::Formatter::new();
+    let selected_class = if elapsed < 2 * Duration::HOUR {
+        formatter = formatter.max_unit(timeago::TimeUnit::Minutes);
         "age-mins"
     } else if elapsed < 2 * Duration::DAY {
+        formatter = formatter.max_unit(timeago::TimeUnit::Hours);
         "age-hours"
-    } else if elapsed < 7 * Duration::DAY {
+    } else if elapsed < 14 * Duration::DAY {
+        formatter = formatter.max_unit(timeago::TimeUnit::Days);
         "age-days"
-    } else if elapsed < 30 * Duration::DAY {
+    } else if elapsed < 60 * Duration::DAY {
+        formatter = formatter.max_unit(timeago::TimeUnit::Weeks);
         "age-weeks"
-    } else if elapsed < 365 * Duration::DAY {
+    } else if elapsed < 2 * 365 * Duration::DAY {
+        formatter = formatter.max_unit(timeago::TimeUnit::Months);
         "age-months"
     } else {
+        formatter = formatter.max_unit(timeago::TimeUnit::Years);
         "age-years"
     };
-    let formatted_time = timeago::Formatter::new().convert(elapsed.unsigned_abs());
+    let formatted_time = formatter.convert(elapsed.unsigned_abs());
     Ok(format!(
         r#"<span class="{selected_class}">{formatted_time}</span>"#
     ))
