@@ -64,12 +64,13 @@
             };
 
             config = mkIf cfg.enable {
-              users.groups.rgit = { };
-              users.users.rgit = {
-                description = "RGit service user";
-                group = "rgit";
-                isSystemUser = true;
-              };
+              # users.groups.rgit = { };
+              # users.users.git.extraGroups = [ "rgit" ];
+              # users.users.rgit = {
+              #   description = "RGit service user";
+              #   group = "rgit";
+              #   isSystemUser = true;
+              # };
 
               systemd.services.rgit = {
                 enable = true;
@@ -89,31 +90,31 @@
                   ];
                   Restart = "on-failure";
 
-                  User = "rgit";
-                  Group = "rgit";
+                  User = "git";
+                  Group = "git";
 
-                  CapabilityBoundingSet = "";
-                  NoNewPrivileges = true;
-                  PrivateDevices = true;
-                  PrivateTmp = true;
-                  PrivateUsers = true;
-                  PrivateMounts = true;
-                  ProtectHome = true;
-                  ProtectClock = true;
-                  ProtectProc = "noaccess";
-                  ProcSubset = "pid";
-                  ProtectKernelLogs = true;
-                  ProtectKernelModules = true;
-                  ProtectKernelTunables = true;
-                  ProtectControlGroups = true;
-                  ProtectHostname = true;
-                  RestrictSUIDSGID = true;
-                  RestrictRealtime = true;
-                  RestrictNamespaces = true;
-                  LockPersonality = true;
-                  RemoveIPC = true;
-                  RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
-                  SystemCallFilter = [ "@system-service" "~@privileged" ];
+                  # CapabilityBoundingSet = "";
+                  # NoNewPrivileges = true;
+                  # PrivateDevices = true;
+                  # PrivateTmp = true;
+                  # PrivateUsers = true;
+                  # PrivateMounts = true;
+                  # ProtectHome = true;
+                  # ProtectClock = true;
+                  # ProtectProc = "noaccess";
+                  # ProcSubset = "pid";
+                  # ProtectKernelLogs = true;
+                  # ProtectKernelModules = true;
+                  # ProtectKernelTunables = true;
+                  # ProtectControlGroups = true;
+                  # ProtectHostname = true;
+                  # RestrictSUIDSGID = true;
+                  # RestrictRealtime = true;
+                  # RestrictNamespaces = true;
+                  # LockPersonality = true;
+                  # RemoveIPC = true;
+                  # RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
+                  # SystemCallFilter = [ "@system-service" "~@privileged" ];
                 };
               };
             };
