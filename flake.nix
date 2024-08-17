@@ -5,7 +5,7 @@
     utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, utils, naersk }:
+  outputs = { self, nixpkgs, utils, naersk, ... }:
     utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -13,18 +13,19 @@
       in
       {
         defaultPackage = naersk-lib.buildPackage {
-          root = ./.;
+          src = pkgs.lib.cleanSource ./.;
           nativeBuildInputs = with pkgs; [ pkg-config clang ];
           buildInputs = with pkgs; [ openssl zlib libssh2 libgit2 ];
-          LIBCLANG_PATH = "${pkgs.clang.cc.lib}/lib";
           ROCKSDB_LIB_DIR = "${pkgs.rocksdb}/lib";
+          LIBCLANG_PATH = "${pkgs.clang.cc.lib}/lib";
           LIBSSH2_SYS_USE_PKG_CONFIG = "true";
         };
         devShell = with pkgs; mkShell {
-          buildInputs = [ cargo rustc rustfmt pre-commit rustPackages.clippy openssl zlib libssh2 libgit2 pkg-config clang ];
-          ROCKSDB_LIB_DIR = "${pkgs.rocksdb}/lib";
-          LIBCLANG_PATH = "${pkgs.clang.cc.lib}/lib";
+          packages = [ cargo rustc rustfmt pre-commit rustPackages.clippy pkg-config clang ];
+          buildInputs = [ openssl zlib libssh2 libgit2 ];
           RUST_SRC_PATH = rustPlatform.rustLibSrc;
+          ROCKSDB_LIB_DIR = "${rocksdb}/lib";
+          LIBCLANG_PATH = "${clang.cc.lib}/lib";
           LIBSSH2_SYS_USE_PKG_CONFIG = "true";
         };
 
