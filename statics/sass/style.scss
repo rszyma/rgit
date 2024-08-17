@@ -55,6 +55,12 @@ nav {
 
 main {
   padding: 2rem;
+
+  @media (max-width: 768px) {
+    // For screens narrower than 768px
+    padding: 10px; // Smaller padding for mobile
+  }
+
   margin: 0;
   border-bottom: solid 3px $bgAccent;
 }
@@ -63,7 +69,11 @@ footer {
   margin-top: 0.5em;
   text-align: center;
   font-size: 80%;
-  color: $text;
+  color: #555;
+
+  a {
+    color: inherit;
+  }
 }
 
 a {
