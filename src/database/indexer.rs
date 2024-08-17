@@ -43,7 +43,8 @@ pub fn run(scan_path: &Path, db: &Arc<rocksdb::DB>) {
 #[instrument(skip(db))]
 fn update_repository_metadata(scan_path: &Path, db: &rocksdb::DB) {
     let mut discovered = Vec::new();
-    discover_repositories(scan_path, &mut discovered);
+    let max_depth = 2;
+    discover_repositories(scan_path, &mut discovered, max_depth);
 
     for repository in discovered {
         let Some(relative) = get_relative_path(scan_path, &repository) else {
@@ -382,7 +383,10 @@ fn get_relative_path<'a>(relative_to: &Path, full_path: &'a Path) -> Option<&'a 
     full_path.strip_prefix(relative_to).ok()
 }
 
-fn discover_repositories(current: &Path, discovered_repos: &mut Vec<PathBuf>) {
+fn discover_repositories(current: &Path, discovered_repos: &mut Vec<PathBuf>, max_depth: usize) {
+    if max_depth == 0 {
+        return;
+    }
     let current = match std::fs::read_dir(current) {
         Ok(v) => v,
         Err(error) => {
@@ -402,7 +406,7 @@ fn discover_repositories(current: &Path, discovered_repos: &mut Vec<PathBuf>) {
             discovered_repos.push(dir);
         } else {
             // probably not a bare git repo, lets recurse deeper
-            discover_repositories(&dir, discovered_repos);
+            discover_repositories(&dir, discovered_repos, max_depth - 1);
         }
     }
 }
