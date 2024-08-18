@@ -26,16 +26,10 @@ use path_clean::PathClean;
 use tower::{util::BoxCloneService, Service};
 
 use self::{
-    about::handle as handle_about,
-    commit::handle as handle_commit,
-    diff::{handle as handle_diff, handle_plain as handle_patch},
-    log::handle as handle_log,
-    refs::handle as handle_refs,
-    smart_git::handle as handle_smart_git,
-    snapshot::handle as handle_snapshot,
-    summary::handle as handle_summary,
-    tag::handle as handle_tag,
-    tree::handle as handle_tree,
+    about::handle as handle_about, commit::handle as handle_commit, diff::handle as handle_diff,
+    log::handle as handle_log, refs::handle as handle_refs, smart_git::handle as handle_smart_git,
+    snapshot::handle as handle_snapshot, summary::handle as handle_summary,
+    tag::handle as handle_tag, tree::handle as handle_tree,
 };
 use crate::{
     database::schema::{commit::YokedCommit, tag::YokedTag},
@@ -80,7 +74,6 @@ pub async fn service(mut request: Request<Body>) -> Response {
         Some("tree") => h!(handle_tree),
         Some("commit") => h!(handle_commit),
         Some("diff") => h!(handle_diff),
-        Some("patch") => h!(handle_patch),
         Some("tag") => h!(handle_tag),
         Some("snapshot") => h!(handle_snapshot),
         Some(v) => {

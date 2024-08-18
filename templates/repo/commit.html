@@ -24,7 +24,7 @@
     </tr>
     <tr>
         <th>commit</th>
-        <td colspan="2"><pre><a href="/{{ repo.display() }}/commit/?id={{ commit.oid() }}{% call link::maybe_branch_suffix(branch) %}" class="no-style">{{ commit.oid() }}</a> <a href="/{{ repo.display() }}/patch?id={{ commit.oid() }}">[patch]</a></pre></td>
+        <td colspan="2"><pre><a href="/{{ repo.display() }}/commit/?id={{ commit.oid() }}{% call link::maybe_branch_suffix(branch) %}" class="no-style">{{ commit.oid() }}</a> <a href="/{{ repo.display() }}/diff?patch=1&id={{ commit.oid() }}">[patch]</a></pre></td>
     </tr>
     <tr>
         <th>tree</th>
@@ -48,6 +48,6 @@
 <pre>{{ commit.body() }}</pre>
 
 <h3>Diff</h3>
-<pre class="diff">{{ commit.diff_stats|safe }}
-{{ commit.diff|safe }}</pre>
+<pre class="diff">{{ diff.diff_stats|safe }}
+{{ diff.diff|safe }}</pre>
 {% endblock %}

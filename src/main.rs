@@ -15,8 +15,7 @@ use anyhow::Context;
 use askama::Template;
 use axum::{
     body::Body,
-    http,
-    http::{HeaderValue, StatusCode},
+    http::{self, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Extension, Router,

@@ -33,6 +33,7 @@ type ReadmeCacheKey = (PathBuf, Option<Arc<str>>);
 
 pub struct Git {
     commits: Cache<Oid, Arc<Commit>>,
+    diffs: Cache<(Oid, Oid), Arc<FormattedDiff>>, // todo
     readme_cache: Cache<ReadmeCacheKey, Option<(ReadmeFormat, Arc<str>)>>,
     syntax_set: SyntaxSet,
 }
@@ -42,6 +43,10 @@ impl Git {
     pub fn new(syntax_set: SyntaxSet) -> Self {
         Self {
             commits: Cache::builder()
+                .time_to_live(Duration::from_secs(10))
+                .max_capacity(100)
+                .build(),
+            diffs: Cache::builder()
                 .time_to_live(Duration::from_secs(10))
                 .max_capacity(100)
                 .build(),
@@ -288,43 +293,6 @@ impl OpenRepository {
             .await
     }
 
-    pub async fn default_branch(self: Arc<Self>) -> Result<Option<String>> {
-        tokio::task::spawn_blocking(move || {
-            let repo = self.repo.lock();
-            let head = repo.head().context("Couldn't find HEAD of repository")?;
-            Ok(head.shorthand().map(ToString::to_string))
-        })
-        .await
-        .context("Failed to join Tokio task")?
-    }
-
-    #[instrument(skip(self))]
-    pub async fn latest_commit(self: Arc<Self>) -> Result<Commit> {
-        tokio::task::spawn_blocking(move || {
-            let repo = self.repo.lock();
-
-            let head = if let Some(reference) = &self.branch {
-                repo.resolve_reference_from_short_name(reference)?
-            } else {
-                repo.head().context("Couldn't find HEAD of repository")?
-            };
-
-            let commit = head
-                .peel_to_commit()
-                .context("Couldn't find commit HEAD of repository refers to")?;
-            let (diff_plain, diff_output, diff_stats) =
-                fetch_diff_and_stats(&repo, &commit, &self.git.syntax_set)?;
-
-            let mut commit = Commit::try_from(commit)?;
-            commit.diff_stats = format_diff_stats(&diff_stats, &commit);
-            commit.diff = diff_output;
-            commit.diff_plain = diff_plain;
-            Ok(commit)
-        })
-        .await
-        .context("Failed to join Tokio task")?
-    }
-
     #[instrument(skip_all)]
     pub async fn archive(
         self: Arc<Self>,
@@ -407,46 +375,84 @@ impl OpenRepository {
     }
 
     #[instrument(skip(self))]
-    pub async fn commit(
-        self: Arc<Self>,
-        commit_of_refname: &str,
-    ) -> Result<Arc<Commit>, Arc<anyhow::Error>> {
-        let commit: Oid = Oid::from_str(commit_of_refname)
-            .or_else(|_| {
-                let repo = self.repo.lock();
-                let resolved_ref = repo
-                    .resolve_reference_from_short_name(commit_of_refname)
-                    .map_err(anyhow::Error::from)?;
-                resolved_ref
-                    .peel_to_commit()
-                    .context("Couldn't find commit from given ref")
-                    .map(|x| x.id())
-            })
-            .map_err(anyhow::Error::from)
-            .map_err(Arc::new)?;
+    pub async fn latest_commit_id(self: Arc<Self>) -> Result<Oid, Arc<anyhow::Error>> {
+        tokio::task::spawn_blocking(move || {
+            let repo = self.repo.lock();
 
+            let head = if let Some(reference) = &self.branch {
+                repo.resolve_reference_from_short_name(reference)
+                    .map_err(anyhow::Error::from)?
+            } else {
+                repo.head().context("Couldn't find HEAD of repository")?
+            };
+
+            let commit = head
+                .peel_to_commit()
+                .context("Couldn't find commit HEAD of repository refers to")?;
+
+            Ok(commit.id())
+        })
+        .await
+        .context("Failed to join Tokio task")?
+    }
+
+    #[instrument(skip(self))]
+    pub async fn commit(self: Arc<Self>, oid: Oid) -> Result<Arc<Commit>, Arc<anyhow::Error>> {
         let git = self.git.clone();
-
         git.commits
-            .try_get_with(commit, async move {
+            .try_get_with(oid, async move {
                 tokio::task::spawn_blocking(move || {
                     let repo = self.repo.lock();
-
-                    let commit = repo.find_commit(commit)?;
-                    let (diff_plain, diff_output, diff_stats) =
-                        fetch_diff_and_stats(&repo, &commit, &self.git.syntax_set)?;
-
-                    let mut commit = Commit::try_from(commit)?;
-                    commit.diff_stats = format_diff_stats(&diff_stats, &commit);
-                    commit.diff = diff_output;
-                    commit.diff_plain = diff_plain;
-
+                    let commit = repo.find_commit(oid)?;
+                    let commit = Commit::try_from(commit)?;
                     Ok(Arc::new(commit))
                 })
                 .await
                 .context("Failed to join Tokio task")?
             })
             .await
+    }
+
+    #[instrument(skip(self))]
+    pub fn oid(&self, ref_: &str) -> Result<Oid, anyhow::Error> {
+        let oid: Oid = Oid::from_str(ref_)
+            .or_else(|_| {
+                let repo = self.repo.lock();
+                let resolved_ref = repo
+                    .resolve_reference_from_short_name(ref_)
+                    .map_err(anyhow::Error::from)?;
+                resolved_ref
+                    .peel_to_commit()
+                    .context("Couldn't find commit from given ref")
+                    .map(|x| x.id())
+            })
+            .map_err(anyhow::Error::from)?;
+        Ok(oid)
+    }
+
+    /// Returns diff between two refs. If ref0 is not provided, returns diff compared to parent.
+    #[instrument(skip(self))]
+    pub async fn diff(
+        self: Arc<Self>,
+        oid0: Option<Oid>,
+        oid1: Oid,
+    ) -> Result<FormattedDiff, anyhow::Error> {
+        let repo = self.repo.lock();
+
+        let commit1: &git2::Commit = &repo.find_commit(oid1).map_err(anyhow::Error::from)?;
+
+        let commit0: git2::Commit = if let Some(oid0) = oid0 {
+            repo.find_commit(oid0).map_err(anyhow::Error::from)?
+        } else {
+            match commit1.parents().next() {
+                Some(x) => x,
+                // No previous commit, so no diff to show too.
+                None => return Ok(FormattedDiff::default()),
+            }
+        };
+
+        // todo: cache this. cache by tuple key: (id0, id1)
+        fetch_diff_and_stats(&repo, &commit0, commit1, &self.git.syntax_set)
     }
 }
 
@@ -593,9 +599,6 @@ pub struct Commit {
     parents: Vec<String>,
     summary: String,
     body: String,
-    pub diff_stats: String,
-    pub diff: String,
-    pub diff_plain: Bytes,
 }
 
 impl TryFrom<git2::Commit<'_>> for Commit {
@@ -616,9 +619,6 @@ impl TryFrom<git2::Commit<'_>> for Commit {
                 .body_bytes()
                 .map_or_else(|| Cow::Borrowed(""), String::from_utf8_lossy)
                 .into_owned(),
-            diff_stats: String::with_capacity(0),
-            diff: String::with_capacity(0),
-            diff_plain: Bytes::new(),
         })
     }
 }
@@ -653,33 +653,58 @@ impl Commit {
     }
 }
 
-#[instrument(skip(repo, commit, syntax_set))]
+#[derive(Debug, Default)]
+pub struct FormattedDiff {
+    pub diff_stats: String,
+    pub diff: String,
+    pub diff_plain: Bytes,
+}
+
+#[instrument(skip(repo, commit0, commit1, syntax_set))]
 fn fetch_diff_and_stats(
     repo: &git2::Repository,
-    commit: &git2::Commit<'_>,
+    commit0: &git2::Commit<'_>,
+    commit1: &git2::Commit<'_>,
     syntax_set: &SyntaxSet,
-) -> Result<(Bytes, String, String)> {
-    let current_tree = commit.tree().context("Couldn't get tree for the commit")?;
-    let parent_tree = commit.parents().next().and_then(|v| v.tree().ok());
+) -> Result<FormattedDiff> {
+    let base_tree = commit0
+        .tree()
+        .context("Couldn't get tree for base commit")?;
+    let current_tree = commit1.tree().context("Couldn't get tree for the commit")?;
+
     let mut diff_opts = DiffOptions::new();
-    let diff = repo.diff_tree_to_tree(
-        parent_tree.as_ref(),
-        Some(&current_tree),
-        Some(&mut diff_opts),
-    )?;
+    let diff =
+        repo.diff_tree_to_tree(Some(&base_tree), Some(&current_tree), Some(&mut diff_opts))?;
 
     let mut diff_plain = BytesMut::new();
-    let email = Email::from_diff(
-        &diff,
-        1,
-        1,
-        &commit.id(),
-        commit.summary().unwrap_or(""),
-        commit.body().unwrap_or(""),
-        &commit.author(),
-        &mut EmailCreateOptions::default(),
-    )
+
+    let commit1_id = &commit1.id();
+
+    let email = if commit1.parent_ids().contains(&commit0.id()) {
+        Email::from_diff(
+            &diff,
+            1,
+            1,
+            &commit1.id(),
+            commit1.summary().unwrap_or(""),
+            commit1.body().unwrap_or(""),
+            &commit1.author(),
+            &mut EmailCreateOptions::default(),
+        )
+    } else {
+        Email::from_diff(
+            &diff,
+            1,
+            1,
+            &Oid::zero(),
+            "",
+            "",
+            &Signature::new("diff", "git@diff", &commit1.time()).unwrap(),
+            &mut EmailCreateOptions::default(),
+        )
+    }
     .context("Couldn't build diff for commit")?;
+
     diff_plain.extend_from_slice(email.as_slice());
 
     let diff_stats = diff
@@ -688,9 +713,12 @@ fn fetch_diff_and_stats(
         .as_str()
         .unwrap_or("")
         .to_string();
-    let diff_output = format_diff(&diff, syntax_set)?;
 
-    Ok((diff_plain.freeze(), diff_output, diff_stats))
+    Ok(FormattedDiff {
+        diff_stats: format_diff_stats(&diff_stats, &commit1_id.to_string()),
+        diff: format_diff(&diff, syntax_set)?,
+        diff_plain: diff_plain.into(),
+    })
 }
 
 fn format_file(content: &str, extension: &str, syntax_set: &SyntaxSet) -> Result<String> {
@@ -894,8 +922,7 @@ fn format_diff(diff: &git2::Diff<'_>, syntax_set: &SyntaxSet) -> Result<String> 
     Ok(diff_output)
 }
 
-fn format_diff_stats(diff_stats: &str, commit: &Commit) -> String {
-    let commit_tree_id = commit.tree();
+fn format_diff_stats(diff_stats: &str, ref_: &str) -> String {
     diff_stats
         .split('\n')
         .map(|line| {
@@ -904,7 +931,7 @@ fn format_diff_stats(diff_stats: &str, commit: &Commit) -> String {
             };
             let filepath = left.trim();
             let htmled_filepath =
-                format!(r#"<a href="../tree/{filepath}?id={commit_tree_id}">{filepath}</a>"#);
+                format!(r#"<a href="../tree/{filepath}?id={ref_}">{filepath}</a>"#);
             let spaces_padding = " ".repeat(left.len() - filepath.len());
             format!("{htmled_filepath}{spaces_padding}|{right}")
         })
