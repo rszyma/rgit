@@ -407,8 +407,21 @@ impl OpenRepository {
     }
 
     #[instrument(skip(self))]
-    pub async fn commit(self: Arc<Self>, commit: &str) -> Result<Arc<Commit>, Arc<anyhow::Error>> {
-        let commit = Oid::from_str(commit)
+    pub async fn commit(
+        self: Arc<Self>,
+        commit_of_refname: &str,
+    ) -> Result<Arc<Commit>, Arc<anyhow::Error>> {
+        let commit: Oid = Oid::from_str(commit_of_refname)
+            .or_else(|_| {
+                let repo = self.repo.lock();
+                let resolved_ref = repo
+                    .resolve_reference_from_short_name(commit_of_refname)
+                    .map_err(anyhow::Error::from)?;
+                resolved_ref
+                    .peel_to_commit()
+                    .context("Couldn't find commit from given ref")
+                    .map(|x| x.id())
+            })
             .map_err(anyhow::Error::from)
             .map_err(Arc::new)?;
 
