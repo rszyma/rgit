@@ -8,6 +8,7 @@
 {% block diff_nav_class %}active{% endblock %}
 
 {% block content %}
+<h3>Comparing {{ diff.id0 }}..{{diff.id1 }}</h3>
 <h2>Diff</h2>
 <pre class="diff">{{ diff.diff_stats|safe }}
 {{ diff.diff|safe }}</pre>

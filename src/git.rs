@@ -655,6 +655,8 @@ impl Commit {
 
 #[derive(Debug, Default)]
 pub struct FormattedDiff {
+    pub id0: String,
+    pub id1: String,
     pub diff_stats: String,
     pub diff: String,
     pub diff_plain: Bytes,
@@ -678,9 +680,10 @@ fn fetch_diff_and_stats(
 
     let mut diff_plain = BytesMut::new();
 
+    let commit0_id = &commit0.id();
     let commit1_id = &commit1.id();
 
-    let email = if commit1.parent_ids().contains(&commit0.id()) {
+    let email = if commit1.parent_ids().contains(commit0_id) {
         Email::from_diff(
             &diff,
             1,
@@ -714,8 +717,11 @@ fn fetch_diff_and_stats(
         .unwrap_or("")
         .to_string();
 
+    let repo_name = repo.path().file_name().unwrap().to_string_lossy();
     Ok(FormattedDiff {
-        diff_stats: format_diff_stats(&diff_stats, &commit1_id.to_string()),
+        id0: commit0_id.to_string(),
+        id1: commit1_id.to_string(),
+        diff_stats: format_diff_stats(&diff_stats, &repo_name, &current_tree.id().to_string()),
         diff: format_diff(&diff, syntax_set)?,
         diff_plain: diff_plain.into(),
     })
@@ -922,7 +928,7 @@ fn format_diff(diff: &git2::Diff<'_>, syntax_set: &SyntaxSet) -> Result<String> 
     Ok(diff_output)
 }
 
-fn format_diff_stats(diff_stats: &str, ref_: &str) -> String {
+fn format_diff_stats(diff_stats: &str, repo_name: &str, tree_id: &str) -> String {
     diff_stats
         .split('\n')
         .map(|line| {
@@ -931,7 +937,7 @@ fn format_diff_stats(diff_stats: &str, ref_: &str) -> String {
             };
             let filepath = left.trim();
             let htmled_filepath =
-                format!(r#"<a href="../tree/{filepath}?id={ref_}">{filepath}</a>"#);
+                format!(r#"<a href="/{repo_name}/tree/{filepath}?id={tree_id}">{filepath}</a>"#);
             let spaces_padding = " ".repeat(left.len() - filepath.len());
             format!("{htmled_filepath}{spaces_padding}|{right}")
         })
