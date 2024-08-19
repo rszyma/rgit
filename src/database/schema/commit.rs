@@ -14,6 +14,29 @@ use crate::database::schema::{
     Yoked,
 };
 
+#[derive(strum_macros::Display, Serialize, Deserialize, Debug, Yokeable)]
+pub enum DecorationClass {
+    #[strum(serialize = "head-deco")]
+    Head,
+    #[strum(serialize = "branch-deco")]
+    Branch,
+    #[strum(serialize = "tag-deco")]
+    Tag,
+    #[strum(serialize = "tag-annotated-deco")]
+    TagAnnotated,
+    #[strum(serialize = "remote-deco")]
+    Remote,
+    #[strum(serialize = "base-deco")]
+    Base,
+}
+
+#[derive(Serialize, Deserialize, Debug, Yokeable)]
+pub struct Decoration {
+    pub class: DecorationClass,
+    pub text: String,
+    // pub href: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Yokeable)]
 pub struct Commit<'a> {
     #[serde(borrow)]
@@ -23,6 +46,7 @@ pub struct Commit<'a> {
     pub author: Author<'a>,
     pub committer: Author<'a>,
     pub hash: CommitHash<'a>,
+    pub decorations: Vec<Decoration>,
 }
 
 impl<'a> Commit<'a> {
@@ -30,7 +54,22 @@ impl<'a> Commit<'a> {
         commit: &'a git2::Commit<'_>,
         author: &'a git2::Signature<'_>,
         committer: &'a git2::Signature<'_>,
+        is_head: bool,
+        is_merge_base: bool,
     ) -> Self {
+        let mut decorations = Vec::new();
+        if is_head {
+            decorations.push(Decoration {
+                text: "HEAD".to_string(),
+                class: DecorationClass::Head,
+            });
+        } else if is_merge_base {
+            decorations.push(Decoration {
+                text: "merge base".to_string(),
+                class: DecorationClass::Base,
+            });
+        }
+        // todo: tag decos
         Self {
             summary: commit
                 .summary_bytes()
@@ -41,6 +80,7 @@ impl<'a> Commit<'a> {
             committer: committer.into(),
             author: author.into(),
             hash: CommitHash::Oid(commit.id()),
+            decorations,
         }
     }
 

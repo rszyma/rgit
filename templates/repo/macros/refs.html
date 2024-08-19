@@ -86,7 +86,13 @@
             {% if commit.summary.len() > 80 -%}
               title="{{ commit.summary }}"
             {%- endif %}
-            >{{ commit.summary|limit80 }}</a></td>
+            >{{ commit.summary|limit80 }}</a>
+            <span class="decoration">
+                {% for deco in commit.decorations -%}
+                <a class="{{- deco.class -}}">{{- deco.text -}}</a>
+                {% endfor -%}
+            </span>
+        </td>
         <td>
             <!-- <img src="https://www.gravatar.com/avatar/{{ commit.author.email|md5 }}?s=13&d=retro" width="13" height="13"> -->
             {{ commit.author.name }}

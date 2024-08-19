@@ -219,6 +219,8 @@ fn branch_index_update(
     }
 
     let commit = reference.peel_to_commit()?;
+    let head_commit_id = git_repository.head()?.peel_to_commit()?.id();
+    let merge_base = git_repository.merge_base(head_commit_id, commit.id())?;
 
     let latest_indexed = if let Some(latest_indexed) = commit_tree.fetch_latest_one()? {
         if commit.id().as_bytes() == &*latest_indexed.get().hash {
@@ -261,8 +263,10 @@ fn branch_index_update(
             let commit = git_repository.find_commit(rev)?;
             let author = commit.author();
             let committer = commit.committer();
+            let is_head = rev == head_commit_id;
+            let is_merge_base = !is_head && rev == merge_base;
 
-            Commit::new(&commit, &author, &committer).insert(
+            Commit::new(&commit, &author, &committer, is_head, is_merge_base).insert(
                 &commit_tree,
                 tree_len + i,
                 &mut batch,

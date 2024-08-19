@@ -1,0 +1,55 @@
+// commit decorations/labels
+
+@mixin deco-common {
+    color: #fff;
+    margin: 0px 0.5em;
+    padding: 0px 0.25em;
+    border: solid 1px;
+}
+
+span.decoration {
+    a.head-deco {
+        @include deco-common;
+        background-color: #922;
+        border-color: #d55;
+    }
+
+    a.branch-deco {
+        @include deco-common;
+        background-color: #361;
+        border-color: #3b2;
+    }
+
+    a.tag-deco {
+        @include deco-common;
+        background-color: #650;
+        border-color: #ba3;
+    }
+
+    a.tag-annotated-deco {
+        @include deco-common;
+        background-color: #840;
+        border-color: #b96;
+    }
+
+    a.remote-deco {
+        @include deco-common;
+        background-color: #348;
+        border-color: #67c;
+    }
+
+    a.base-deco {
+        @include deco-common;
+        background-color: rgb(70, 70, 70);
+        border-color: rgb(136, 136, 136);
+    }
+}
+
+// div.commit-subject a.branch-deco,
+// div.commit-subject a.tag-deco,
+// div.commit-subject a.tag-annotated-deco,
+// div.commit-subject a.remote-deco,
+// div.commit-subject a.deco {
+//     margin-left: 1em;
+//     font-size: 75%;
+// }

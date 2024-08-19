@@ -54,6 +54,7 @@ httparse = "1.7"
 yoke = { version = "0.7.1", features = ["derive"] }
 rand = "0.8.5"
 regex = "1.10.6"
+strum_macros = "0.26.4"
 
 [build-dependencies]
 anyhow = "1.0"
